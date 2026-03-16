@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wassette-bin"
+dynamic = ["version"]
+description = "Wassette CLI"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+
+[project.urls]
+Homepage = "https://github.com/microsoft/wassette"
+Repository = "https://github.com/cataggar/pypi-wassette"
+
+[project.scripts]
+wassette = "wassette_cli:main"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/wassette_cli"]
