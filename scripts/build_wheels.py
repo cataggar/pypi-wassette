@@ -61,12 +61,34 @@ def sha256_digest(data: bytes) -> str:
     return urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
 
 
+_FALLBACK_UPSTREAM_VERSION: str | None = None
+
+
+def _get_latest_upstream_version() -> str:
+    global _FALLBACK_UPSTREAM_VERSION
+    if _FALLBACK_UPSTREAM_VERSION is None:
+        resp = requests.get(
+            f"https://api.github.com/repos/{WASSETTE_REPO}/releases/latest",
+            timeout=30,
+        )
+        resp.raise_for_status()
+        _FALLBACK_UPSTREAM_VERSION = resp.json()["tag_name"].lstrip("v")
+    return _FALLBACK_UPSTREAM_VERSION
+
+
 def download_asset(version: str, platform_key: str, ext: str) -> bytes:
     """Download a wassette release asset."""
-    asset_name = f"wassette_{version}_{platform_key}{ext}"
-    url = f"https://github.com/{WASSETTE_REPO}/releases/download/v{version}/{asset_name}"
+    upstream_version = version.split(".post")[0]
+    asset_name = f"wassette_{upstream_version}_{platform_key}{ext}"
+    url = f"https://github.com/{WASSETTE_REPO}/releases/download/v{upstream_version}/{asset_name}"
     print(f"  Downloading {asset_name} ...")
     resp = requests.get(url, allow_redirects=True, timeout=300)
+    if resp.status_code == 404:
+        upstream_version = _get_latest_upstream_version()
+        asset_name = f"wassette_{upstream_version}_{platform_key}{ext}"
+        url = f"https://github.com/{WASSETTE_REPO}/releases/download/v{upstream_version}/{asset_name}"
+        print(f"  v{version} not found upstream; falling back to {asset_name} ...")
+        resp = requests.get(url, allow_redirects=True, timeout=300)
     resp.raise_for_status()
     return resp.content
 
@@ -144,9 +166,10 @@ def build_wheel(version: str, platform_key: str, info: dict[str, str], dist_dir:
             f"Metadata-Version: 2.4\n"
             f"Name: wassette-bin\n"
             f"Version: {version}\n"
-            f"Summary: Wassette CLI repackaged as Python wheels\n"
-            f"Home-page: https://github.com/microsoft/wassette\n"
+            f"Summary: DEPRECATED: Use 'ghr install microsoft/wassette' instead (https://cataggar.github.io/ghr/)\n"
+            f"Home-page: https://cataggar.github.io/ghr/\n"
             f"License: MIT\n"
+            f"Classifier: Development Status :: 7 - Inactive\n"
             f"Requires-Python: >=3.9\n"
             f"Description-Content-Type: text/markdown\n"
             f"\n"
